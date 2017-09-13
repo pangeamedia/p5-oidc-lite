@@ -2,7 +2,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use JSON::WebToken;
+use Crypt::JWT qw/encode_jwt/;
 use OIDC::Lite::Util::JWT;
 use JSON::XS qw/decode_json encode_json/;
 
@@ -15,7 +15,12 @@ TEST_HEADER: {
                         foo => 'bar'
                     );
     my $key = '';
-    my $jwt = JSON::WebToken->encode(\%payload, $key, $header{alg}, \%header);
+    my $jwt = encode_jwt(
+      payload => \%payload,
+      key => $key,
+      alg => $header{alg},
+      extra_headers => \%header,
+    );
     my $decode_header = OIDC::Lite::Util::JWT::header($jwt);
     is( $decode_header->{typ}, q{JWS});
     is( $decode_header->{alg}, q{HS256});
@@ -34,7 +39,12 @@ TEST_PAYLOAD: {
                         foo => 'bar'
                     );
     my $key = '';
-    my $jwt = JSON::WebToken->encode(\%payload, $key, $header{alg}, \%header);
+    my $jwt = encode_jwt(
+      payload => \%payload,
+      key => $key,
+      alg => $header{alg},
+      extra_headers => \%header,
+    );
     is(encode_json(OIDC::Lite::Util::JWT::payload($jwt)), encode_json(\%payload));
     ok( !OIDC::Lite::Util::JWT::payload('invalid_jwt') );
     ok( !OIDC::Lite::Util::JWT::payload('invalid_header.invalid_payload.') );

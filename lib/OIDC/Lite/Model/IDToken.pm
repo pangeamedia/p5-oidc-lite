@@ -4,7 +4,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 
 use MIME::Base64 qw/encode_base64url decode_base64url/;
-use JSON::WebToken qw/encode_jwt decode_jwt/;
+use Crypt::JWT qw/encode_jwt decode_jwt/;
 use Params::Validate;
 use Digest::SHA qw/sha256 sha384 sha512/;
 use OIDC::Lite::Util::JWT;
@@ -63,7 +63,7 @@ sub new {
     my $class = shift;
     my @args = @_ == 1 ? %{$_[0]} : @_;
     my %params = Params::Validate::validate_with(
-        params => \@args, 
+        params => \@args,
         spec => {
             header      => { optional => 1 },
             payload     => { optional => 1 },
@@ -82,7 +82,7 @@ sub new {
         my %payload=();
         $self->payload(\%payload);
     }
- 
+
     return $self;
 }
 
@@ -103,7 +103,12 @@ sub get_token_string {
         unless($self->header->{alg});
 
     # generate token string
-    my $jwt = encode_jwt($self->payload, $self->key, $self->header->{alg}, $self->header);
+    my $jwt = encode_jwt(
+        payload => $self->payload,
+        key => $self->key,
+        alg => $self->header->{alg},
+        extra_headers => $self->header,
+    );
     $self->token_string($jwt);
     return $jwt;
 }
@@ -168,7 +173,7 @@ sub load {
     return unless ( $header and $payload );
 
     my $id_token =  OIDC::Lite::Model::IDToken->new(
-                       header   => $header, 
+                       header   => $header,
                        payload  => $payload,
                        key      => $key,
                        alg      => $alg,
@@ -210,7 +215,11 @@ sub verify {
 
     my $payload = undef;
     eval{
-        $payload = decode_jwt($self->token_string, $self->key, 1, [$self->alg]);
+        $payload = decode_jwt(
+            token => $self->token_string,
+            key => $self->key,
+            accepted_alg => [$self->alg],
+        );
     };
     if($@){
         return 0;
