@@ -14,7 +14,7 @@ TEST_HEADER: {
     my %payload =   (
                         foo => 'bar'
                     );
-    my $key = '';
+    my $key = 'SECRET';
     my $jwt = encode_jwt(
       payload => \%payload,
       key => $key,
@@ -38,7 +38,7 @@ TEST_PAYLOAD: {
     my %payload =   (
                         foo => 'bar'
                     );
-    my $key = '';
+    my $key = 'SECRET';
     my $jwt = encode_jwt(
       payload => \%payload,
       key => $key,
