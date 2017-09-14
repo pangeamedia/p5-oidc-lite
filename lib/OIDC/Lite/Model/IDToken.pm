@@ -102,12 +102,17 @@ sub get_token_string {
     $self->header->{alg} = q{none}
         unless($self->header->{alg});
 
+    my $key = $self->key;
+    my $alg = $self->header->{alg};
+
     # generate token string
     my $jwt = encode_jwt(
         payload => $self->payload,
-        key => $self->key,
-        alg => $self->header->{alg},
+        # Crypt::JWT requires an RSA key to be a reference
+        key => $alg && $alg =~ /^RS/ && $key && !ref $key ? \$key : $key,
+        alg => $alg,
         extra_headers => $self->header,
+        allow_none => 1,
     );
     $self->token_string($jwt);
     return $jwt;
@@ -175,7 +180,8 @@ sub load {
     my $id_token =  OIDC::Lite::Model::IDToken->new(
                        header   => $header,
                        payload  => $payload,
-                       key      => $key,
+                       # Crypt::JWT requires an RSA key to be a reference
+                       key      => $alg && $alg =~ /^RS/ && $key && !ref $key ? \$key : $key,
                        alg      => $alg,
                     );
     $id_token->token_string($token_string);
@@ -213,12 +219,17 @@ sub verify {
         }
     }
 
+    my $alg = $self->alg;
+    my $key = $self->key;
+
     my $payload = undef;
     eval{
         $payload = decode_jwt(
             token => $self->token_string,
-            key => $self->key,
+            # Crypt::JWT requires an RSA key to be a reference
+            key => $alg && $alg =~ /^RS/ && $key && !ref $key ? \$key : $key,
             accepted_alg => [$self->alg],
+            allow_none => 1,
         );
     };
     if($@){
